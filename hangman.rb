@@ -27,6 +27,8 @@ class Game
     if load_answer
       filename = prompt_load
       begin
+        puts "Loading #{filename}..."
+        sleep(1)
         load_game(filename)
         puts 'Loading Success!'
       rescue
@@ -75,9 +77,9 @@ class Game
   end
 
   def prompt(action)
-    puts "Would you like to #{action} a save file? y/n"
     answer = ''
     until answer == 'n' || answer == 'y'
+      print "Would you like to #{action} a save file? y/n: "
       answer = gets.chomp.downcase
     end
     return true if answer == 'y'
@@ -88,11 +90,11 @@ class Game
     Dir.mkdir('saves') unless Dir.exists?('saves')
     filename = 'saves/' + player.name + '_save.txt'
     save_file = File.open(filename, 'w') { |file| file.puts Marshal.dump(self) }
+    puts 'Game successfully saved.'
   end
 
   def prompt_load
-    puts '>>>Enter your name: '
-    name = gets.chomp.downcase
+    name = player.name
     filename = 'saves/' + name + '_save.txt'
   end
 
@@ -166,7 +168,10 @@ class Player
 
 end
 
-player = Player.new('nalyk')
+puts 'Enter player name: '
+name = gets.chomp.downcase
+
+player = Player.new(name)
 computer = Computer.new
 game = Game.new(computer, player, '5desk.txt')
 game.start_game
