@@ -1,5 +1,7 @@
+
 class Game
   attr_reader :computer, :player, :wordlist, :guesses
+  
   def initialize(computer, player, wordfile, guesses=6)
     @computer = computer
     @player = player
@@ -20,11 +22,28 @@ class Game
     puts 'Wordlist loaded.'
   end
 
+  def start_game
+    load_answer = prompt('load')
+    if load_answer
+      filename = prompt_load
+      begin
+        load_game(filename)
+        puts 'Loading Success!'
+      rescue
+        puts "#{filename} save file not found. Starting new game."
+        load_words
+        computer.select_word(wordlist)
+      end
+    else
+      load_words
+      computer.select_word(wordlist)
+    end
+    play
+  end
+
   def play
-    load_words
-    computer.select_word(wordlist)
+    computer.update_display
     while guesses > 0 && !computer.win?
-      computer.update_display
       guess = player.get_guess
       until !computer.guessed.include?(guess)
         puts 'You already guessed that!'
@@ -35,11 +54,16 @@ class Game
       if eval 
         puts "Correct!"
       else
+        puts "-------------------"
         puts "Sorry, no #{guess} in this word."
         puts "-------------------"
         @guesses -= 1
         puts "#{@guesses} guesses remaining."
+        break if @guesses == 0
       end
+      computer.update_display
+      save_answer = prompt('save')
+      save_game if save_answer
     end
     computer.update_display
     
@@ -48,6 +72,36 @@ class Game
     else
       puts "You win!"
     end
+  end
+
+  def prompt(action)
+    puts "Would you like to #{action} a save file? y/n"
+    answer = ''
+    until answer == 'n' || answer == 'y'
+      answer = gets.chomp.downcase
+    end
+    return true if answer == 'y'
+    return false
+  end
+
+  def save_game
+    Dir.mkdir('saves') unless Dir.exists?('saves')
+    filename = 'saves/' + player.name + '_save.txt'
+    save_file = File.open(filename, 'w') { |file| file.puts Marshal.dump(self) }
+  end
+
+  def prompt_load
+    puts '>>>Enter your name: '
+    name = gets.chomp.downcase
+    filename = 'saves/' + name + '_save.txt'
+  end
+
+  def load_game(save_file)
+    save = File.open(save_file)
+    game = Marshal.load(save)
+    @computer = game.computer
+    @player = game.player
+    @guesses = game.guesses
   end
 
 end
@@ -91,11 +145,12 @@ class Computer
     @word.split('').all? { |char| guessed.include?(char) }
   end
 
-
 end
 
 class Player
-  def initialize()
+  attr_reader :name
+  def initialize(name)
+    @name = name
   end
 
   #get guess
@@ -108,9 +163,10 @@ class Player
     end
     guess
   end
+
 end
 
-player = Player.new
+player = Player.new('nalyk')
 computer = Computer.new
 game = Game.new(computer, player, '5desk.txt')
-game.play
+game.start_game
